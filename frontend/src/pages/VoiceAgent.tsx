@@ -23,7 +23,6 @@ export const VoiceAgent: React.FC = () => {
   const isActiveRef = useRef(isActive);
   const agentStateRef = useRef(agentState);
 
-  // Keep refs synchronized with state to prevent event listeners from triggering dependency restarts
   useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
@@ -32,7 +31,6 @@ export const VoiceAgent: React.FC = () => {
     agentStateRef.current = agentState;
   }, [agentState]);
 
-  // Pre-load speech synthesis voices on mount to prevent asynchronous delay in Chrome
   useEffect(() => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.getVoices();
@@ -42,7 +40,6 @@ export const VoiceAgent: React.FC = () => {
     }
   }, []);
 
-  // Initialize Speech Recognition ONCE or when language changes
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -56,7 +53,7 @@ export const VoiceAgent: React.FC = () => {
       };
 
       rec.onresult = (event: any) => {
-        // Clear silence detection on active speech
+
         if (silenceTimeoutRef.current) {
           clearTimeout(silenceTimeoutRef.current);
         }
@@ -75,8 +72,7 @@ export const VoiceAgent: React.FC = () => {
         const currentText = (finalTranscript || interimTranscript).trim();
         if (currentText) {
           setTranscript(currentText);
-          
-          // Trigger silence timer (1.5 seconds of silence = send message)
+
           silenceTimeoutRef.current = setTimeout(() => {
             handleVoiceSubmit(currentText);
           }, 1500);
@@ -94,7 +90,7 @@ export const VoiceAgent: React.FC = () => {
       };
 
       rec.onend = () => {
-        // Automatically restart listening if session is still active and listening state
+
         if (isActiveRef.current && agentStateRef.current === "listening") {
           try {
             rec.start();
@@ -142,7 +138,6 @@ export const VoiceAgent: React.FC = () => {
     setSpeakingText("");
     setAgentState("listening");
 
-    // Let state update apply to refs first
     isActiveRef.current = true;
     agentStateRef.current = "listening";
 
@@ -170,11 +165,9 @@ export const VoiceAgent: React.FC = () => {
     toast.success("Voice Session Ended.");
   };
 
-  // Submit voice input to agent chat pipeline
   const handleVoiceSubmit = async (queryText: string) => {
     if (!queryText.trim() || agentState === "thinking" || agentState === "speaking") return;
 
-    // Set state to thinking first to prevent onend from restarting recognition
     setAgentState("thinking");
     agentStateRef.current = "thinking";
 
@@ -182,7 +175,6 @@ export const VoiceAgent: React.FC = () => {
       clearTimeout(silenceTimeoutRef.current);
     }
 
-    // Pause listener during API fetch and playback
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -192,15 +184,14 @@ export const VoiceAgent: React.FC = () => {
     setTranscript(queryText);
 
     try {
-      // 1. Get LLM response (connected to live MongoDB stats)
+
       const chatRes = await api.post("/chat/", { message: queryText });
       const replyText = chatRes.data.response;
       const spokenSummary = chatRes.data.voice_summary || replyText;
       
-      setCooReply(replyText); // Detailed report displays in the UI card
-      setSpeakingText(spokenSummary); // Spoken summary displays in subtitles and is played out loud
+      setCooReply(replyText);
+      setSpeakingText(spokenSummary);
 
-      // 2. Play reply using Voice (Murf API or local fallback)
       setAgentState("speaking");
       playCooVoice(spokenSummary);
 
@@ -208,7 +199,7 @@ export const VoiceAgent: React.FC = () => {
       console.error(err);
       toast.error("Voice Agent request failed.");
       setAgentState("listening");
-      // Resume listening
+
       if (isActive && recognitionRef.current) {
         try {
           recognitionRef.current.start();
@@ -217,15 +208,14 @@ export const VoiceAgent: React.FC = () => {
     }
   };
 
-  // Speak AI reply
   const playCooVoice = async (text: string) => {
-    // Call backend TTS route for Murf synthesis
+
     try {
       const voiceId = lang === "en" ? "en-IN-winnie" : "hi-IN-kalpana";
       const res = await api.post("/chat/tts", { text, voice_id: voiceId });
 
       if (res.data.status === "success" && res.data.audioUrl) {
-        // Play Murf Audio URL
+
         const audio = new Audio(res.data.audioUrl);
         audioRef.current = audio;
         
@@ -241,7 +231,7 @@ export const VoiceAgent: React.FC = () => {
           fallbackToBrowserSpeech(text);
         });
       } else {
-        // Fallback to browser speech
+
         fallbackToBrowserSpeech(text);
       }
     } catch (err) {
@@ -252,7 +242,7 @@ export const VoiceAgent: React.FC = () => {
 
   const fallbackToBrowserSpeech = (text: string) => {
     if ("speechSynthesis" in window) {
-      // Clean markdown out
+
       const cleanText = text
         .replace(/[\#\*\_`\-]/g, "")
         .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
@@ -296,9 +286,8 @@ export const VoiceAgent: React.FC = () => {
         utterance.voice = voice;
       }
 
-      // Safety timeout to prevent getting stuck if browser voice synthesis fails to fire onend
       const wordCount = cleanText.split(/\s+/).length;
-      const estimatedSeconds = Math.max(4, Math.min(12, Math.ceil(wordCount * 0.4))); // 400ms per word + buffer
+      const estimatedSeconds = Math.max(4, Math.min(12, Math.ceil(wordCount * 0.4)));
       let hasStartedSpeech = false;
       
       const safetyTimeout = setTimeout(() => {

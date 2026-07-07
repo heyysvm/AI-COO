@@ -35,15 +35,13 @@ export const AIChat: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
-  
-  // Voice State variables
+
   const [isListening, setIsListening] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<number | null>(null);
   const [lang, setLang] = useState<"en" | "hi">("en");
   const recognitionRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Speech-to-Text Recognition Setup
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -86,7 +84,6 @@ export const AIChat: React.FC = () => {
     };
   }, [lang]);
 
-  // Preload voices for speech synthesis
   useEffect(() => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.getVoices();
@@ -119,7 +116,6 @@ export const AIChat: React.FC = () => {
     }
   };
 
-  // Text-to-Speech Synthesis handler
   const handleSpeak = (text: string, idx: number) => {
     if ("speechSynthesis" in window) {
       if (window.speechSynthesis.speaking) {
@@ -129,16 +125,14 @@ export const AIChat: React.FC = () => {
           return;
         }
       }
-      
-      // Strip markdown symbols for cleaner voice rendering
+
       const cleanText = text
         .replace(/[\#\*\_`\-]/g, "")
         .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
         .trim();
         
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      
-      // Locate appropriate Indian accent or Hindi voice
+
       const voices = window.speechSynthesis.getVoices();
       console.log("SpeechSynthesis available voices:", voices.map(v => `${v.name} (${v.lang})`));
       
@@ -187,7 +181,6 @@ export const AIChat: React.FC = () => {
     }
   };
 
-  // Fetch chat history from DB
   const { data: dbHistory = [], isLoading: loadingHistory } = useQuery({
     queryKey: ["chatHistory"],
     queryFn: async () => {
@@ -203,11 +196,10 @@ export const AIChat: React.FC = () => {
   }, [dbHistory]);
 
   useEffect(() => {
-    // Scroll to bottom on new messages
+
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, activeAgent]);
 
-  // Send message mutation
   const sendChatMutation = useMutation({
     mutationFn: async (payload: { message: string }) => {
       setLoading(true);
@@ -215,7 +207,7 @@ export const AIChat: React.FC = () => {
       return res.data;
     },
     onSuccess: (data) => {
-      // Append assistant message ONLY since user message was already added optimistically
+
       setChatHistory((prev) => [
         ...prev,
         {
@@ -237,7 +229,6 @@ export const AIChat: React.FC = () => {
     },
   });
 
-  // Clear chat logs mutation
   const clearChatMutation = useMutation({
     mutationFn: async () => {
       await api.delete("/chat/history");
@@ -256,9 +247,8 @@ export const AIChat: React.FC = () => {
     if (!message.trim() || loading) return;
 
     const queryText = message.trim();
-    setMessage(""); // IMMEDIATELY EMPTY THE INPUT
+    setMessage("");
 
-    // Set active agent tag based on query keywords
     const msg = queryText.toLowerCase();
     if (msg.includes("stock") || msg.includes("inventory") || msg.includes("reorder") || msg.includes("replenish")) {
       setActiveAgent("Inventory Agent");
@@ -272,7 +262,6 @@ export const AIChat: React.FC = () => {
       setActiveAgent("Supervisor Agent");
     }
 
-    // Optimistically add user query to UI
     setChatHistory((prev) => [
       ...prev,
       { role: "user", content: queryText, timestamp: new Date() },
@@ -284,7 +273,6 @@ export const AIChat: React.FC = () => {
   const handleSelectPrompt = (promptText: string) => {
     if (loading) return;
 
-    // Set active agent tag based on query keywords
     const msg = promptText.toLowerCase();
     if (msg.includes("stock") || msg.includes("inventory") || msg.includes("reorder") || msg.includes("replenish")) {
       setActiveAgent("Inventory Agent");

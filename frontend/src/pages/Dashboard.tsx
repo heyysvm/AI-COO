@@ -43,10 +43,8 @@ export const Dashboard: React.FC = () => {
   const [seeding, setSeeding] = useState(false);
   const { uploadAndScan, scanning } = useScanStore();
 
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch dashboard overview
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboardOverview"],
     queryFn: async () => {
@@ -55,7 +53,6 @@ export const Dashboard: React.FC = () => {
     },
   });
 
-  // Seed demo data mutation
   const seedMutation = useMutation({
     mutationFn: async () => {
       setSeeding(true);
@@ -88,7 +85,6 @@ export const Dashboard: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-
   if (isLoading) {
     return (
       <div className="h-[80vh] w-full flex items-center justify-center">
@@ -97,7 +93,6 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // Generate real dynamic insights based on live stats
   const getDynamicInsights = (stats: any) => {
     if (!stats) return [];
     const res = [];
