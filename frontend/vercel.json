@@ -1,9 +1,8 @@
 {
-  "trailingSlash": true,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://ai-coo-backend-69zm.onrender.com/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://ai-coo-backend-69zm.onrender.com/api/$1"
     }
   ]
 }
