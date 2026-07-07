@@ -29,6 +29,8 @@ const queryClient = new QueryClient({
   },
 })
 
+import api from './services/api'
+
 export default function App() {
   const [appLoading, setAppLoading] = useState(true)
   const loadFromStorage = useAuthStore((state) => state.loadFromStorage)
@@ -40,6 +42,15 @@ export default function App() {
     }, 1000)
     return () => clearTimeout(timer)
   }, [loadFromStorage])
+
+  useEffect(() => {
+    const ping = () => {
+      api.get('/dashboard/notifications').catch(() => {})
+    }
+    ping()
+    const interval = setInterval(ping, 300000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>
